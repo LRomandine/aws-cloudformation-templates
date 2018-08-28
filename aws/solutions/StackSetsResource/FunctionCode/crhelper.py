@@ -26,7 +26,7 @@ def log_config(event, loglevel=None, botolevel=None):
         if 'loglevel' in event['ResourceProperties'] and not loglevel:
             loglevel = event['ResourceProperties']['loglevel']
         if 'botolevel' in event['ResourceProperties'] and not botolevel:
-            botolevel = event['ResourceProperties']['botolevel']
+            loglevel = event['ResourceProperties']['botolevel']
     if not loglevel:
         loglevel = 'warning'
     if not botolevel:
@@ -52,19 +52,12 @@ def send(event, context, responseStatus, responseData, physicalResourceId,
 
     responseBody = {}
     responseBody['Status'] = responseStatus
-    msg = 'See details in CloudWatch Log Stream: ' + context.log_stream_name
+    msg = 'See CloudWatch Log Stream: ' + context.log_stream_name
     if not reason:
         responseBody['Reason'] = msg
     else:
-        responseBody['Reason'] = str(reason)[0:255] + '... ' + msg
-        
-    if physicalResourceId:
-        responseBody['PhysicalResourceId'] = physicalResourceId
-    elif 'PhysicalResourceId' in event:
-        responseBody['PhysicalResourceId'] = event['PhysicalResourceId']
-    else:
-        responseBody['PhysicalResourceId'] = context.log_stream_name
-
+        responseBody['Reason'] = str(reason)[0:255] + ' (' + msg + ')'
+    responseBody['PhysicalResourceId'] = physicalResourceId or 'NONE'
     responseBody['StackId'] = event['StackId']
     responseBody['RequestId'] = event['RequestId']
     responseBody['LogicalResourceId'] = event['LogicalResourceId']
@@ -145,5 +138,4 @@ def cfn_handler(event, context, create, update, delete, logger, init_failed):
         logger.error(e, exc_info=True)
         send(event, context, "FAILED", responseData, physicalResourceId,
              reason=e, logger=logger)
-    finally:
-        t.cancel()
+        raise
